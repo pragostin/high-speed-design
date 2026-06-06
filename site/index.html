@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>High-Speed Design — Knowledge Base</title>
+
+<!-- Math, markdown, diagrams — all vendored locally (no CDN, works offline) -->
+<link rel="stylesheet" href="assets/lib/katex/katex.min.css">
+<script src="assets/lib/katex/katex.min.js"></script>
+<script src="assets/lib/marked.umd.js"></script>
+<script src="assets/lib/mermaid.min.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    if (window.mermaid) {
+      window.mermaid.initialize({ startOnLoad: false, theme: 'neutral', themeVariables: {
+        fontFamily: 'DM Sans, sans-serif', primaryColor: '#f0e9dd',
+        primaryBorderColor: '#c4663a', lineColor: '#8a7f74', primaryTextColor: '#1a1a2e'
+      }});
+    }
+  });
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --sand: #f5ede0;
+    --terracotta: #c4663a;
+    --olive: #6b7c4a;
+    --sea: #3a7ca5;
+    --ink: #1a1a2e;
+    --cream: #fdf8f2;
+    --paper: #ffffff;
+    --muted: #8a7f74;
+    --border: #e6dccc;
+    --code-bg: #f4efe6;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── HERO ─────────────────────────────────────────── */
+  .hero {
+    background: var(--ink);
+    color: var(--sand);
+    padding: 48px 32px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 85% 30%, rgba(196,102,58,0.28) 0%, transparent 55%),
+                radial-gradient(ellipse at 10% 90%, rgba(58,124,165,0.22) 0%, transparent 50%);
+  }
+  .hero-inner { position: relative; max-width: 900px; margin: 0 auto; }
+  .hero-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--terracotta); margin-bottom: 14px;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(30px, 5vw, 50px); line-height: 1.1; margin-bottom: 14px;
+  }
+  .hero h1 em { font-style: italic; color: #e8c4a0; }
+  .hero-sub { font-size: 14px; color: #b0a898; max-width: 460px; line-height: 1.7; }
+  .hero-stats {
+    display: flex; gap: 28px; margin-top: 26px;
+    font-family: 'Space Mono', monospace; font-size: 12px; color: #b0a898;
+  }
+  .hero-stats b { color: var(--sand); font-size: 20px; display: block; }
+
+  /* ── CONTROLS (sticky search + chips) ─────────────── */
+  .controls {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(253,248,242,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+  }
+  .controls-inner { max-width: 900px; margin: 0 auto; }
+  .search-wrap { position: relative; }
+  .search-wrap svg {
+    position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    width: 18px; height: 18px; stroke: var(--muted);
+  }
+  #search {
+    width: 100%; padding: 13px 16px 13px 46px;
+    border: 1px solid var(--border); border-radius: 30px;
+    background: var(--paper); font-family: 'DM Sans', sans-serif;
+    font-size: 15px; color: var(--ink); transition: all .2s;
+  }
+  #search:focus { outline: none; border-color: var(--terracotta); box-shadow: 0 0 0 3px rgba(196,102,58,0.1); }
+  #search::placeholder { color: var(--muted); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+    font-size: 12px; font-weight: 500; cursor: pointer; background: var(--paper);
+    color: var(--muted); font-family: 'DM Sans', sans-serif;
+    transition: all .18s; letter-spacing: .2px; white-space: nowrap;
+  }
+  .chip:hover:not(.active) { border-color: var(--terracotta); color: var(--terracotta); }
+  .chip.active { background: var(--terracotta); color: #fff; border-color: var(--terracotta); }
+  .chip .n { opacity: .6; margin-left: 5px; font-family: 'Space Mono', monospace; font-size: 10px; }
+
+  /* ── CARDS ────────────────────────────────────────── */
+  .feed { max-width: 900px; margin: 0 auto; padding: 32px; }
+  .result-count {
+    font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 18px;
+  }
+
+  .card {
+    background: var(--paper); border: 1px solid var(--border); border-radius: 14px;
+    margin-bottom: 18px; overflow: hidden; transition: box-shadow .2s, border-color .2s;
+  }
+  .card:hover { box-shadow: 0 6px 28px rgba(26,26,46,0.07); border-color: #dcd0bd; }
+
+  .card-head { padding: 22px 26px 0; cursor: pointer; }
+  .card-meta-top {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted);
+  }
+  .card-date { letter-spacing: .5px; }
+  .card-topics { display: flex; flex-wrap: wrap; gap: 6px; }
+  .topic-tag {
+    background: var(--sand); color: #9a6038; padding: 2px 9px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; letter-spacing: .3px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .card h2 {
+    font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700;
+    line-height: 1.25; margin-bottom: 8px;
+  }
+  .card-summary { color: #5a5248; font-size: 14px; margin-bottom: 16px; }
+  .card-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+  .kw { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .kw::before { content: '#'; opacity: .5; }
+
+  .expand-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 26px; border-top: 1px solid transparent; margin-top: 16px;
+    color: var(--terracotta); font-size: 13px; font-weight: 500; cursor: pointer;
+    user-select: none;
+  }
+  .expand-bar:hover { background: #faf5ec; }
+  .expand-bar .arrow { transition: transform .2s; }
+  .card.open .expand-bar .arrow { transform: rotate(180deg); }
+
+  .card-body {
+    display: none; padding: 4px 26px 26px; border-top: 1px solid var(--border);
+    animation: fade .3s ease;
+  }
+  .card.open .card-body { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+  /* markdown body styling */
+  .card-body h2 { font-family: 'Playfair Display', serif; font-size: 20px; margin: 22px 0 10px; color: var(--ink); }
+  .card-body h3 { font-size: 15px; margin: 18px 0 8px; color: var(--terracotta); font-weight: 600; }
+  .card-body p { margin: 10px 0; font-size: 15px; color: #2a2a3a; }
+  .card-body ul, .card-body ol { margin: 10px 0 10px 22px; font-size: 15px; color: #2a2a3a; }
+  .card-body li { margin: 5px 0; }
+  .card-body strong { color: var(--ink); font-weight: 600; }
+  .card-body code {
+    background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
+    font-family: 'Space Mono', monospace; font-size: 13px; color: #9a6038;
+  }
+  .card-body pre { background: var(--code-bg); padding: 14px; border-radius: 8px; overflow-x: auto; margin: 12px 0; }
+  .card-body pre code { background: none; padding: 0; color: var(--ink); }
+  .card-body table { border-collapse: collapse; margin: 14px 0; font-size: 14px; width: 100%; }
+  .card-body th, .card-body td { border: 1px solid var(--border); padding: 7px 11px; text-align: left; }
+  .card-body th { background: var(--sand); color: #9a6038; font-weight: 600; }
+  .card-body blockquote { border-left: 3px solid var(--olive); margin: 14px 0; padding: 4px 14px; color: var(--muted); font-size: 13px; background: #faf5ec; border-radius: 0 6px 6px 0; }
+  .card-body .katex-display { margin: 16px 0; overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+  .card-body img { max-width: 100%; height: auto; display: block; margin: 16px auto; border: 1px solid var(--border); border-radius: 8px; background: var(--paper); }
+  .mermaid { text-align: center; margin: 16px 0; background: var(--cream); border-radius: 10px; padding: 14px; }
+  .material-note {
+    margin-top: 18px; padding: 10px 14px; background: #faf5ec; border-left: 3px solid var(--olive);
+    border-radius: 0 6px 6px 0; font-size: 12px; color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty .big { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--ink); margin-bottom: 8px; }
+
+  mark { background: #ffe9b8; color: inherit; padding: 0 2px; border-radius: 2px; }
+
+  footer { text-align: center; padding: 30px; color: var(--muted); font-size: 12px; font-family: 'Space Mono', monospace; }
+
+  @media (max-width: 640px) {
+    .hero, .controls, .feed { padding-left: 18px; padding-right: 18px; }
+    .card-head { padding: 18px 18px 0; }
+    .expand-bar, .card-body { padding-left: 18px; padding-right: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">◆ Knowledge Base</div>
+    <h1>High-Speed <em>Design</em></h1>
+    <p class="hero-sub">A growing library of study notes on TIAs, drivers, equalization, and the RF theory that ties them together.</p>
+    <div class="hero-stats">
+      <div><b id="stat-cards">0</b> notes</div>
+      <div><b id="stat-topics">0</b> topics</div>
+      <div><b id="stat-latest">—</b> latest</div>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="controls-inner">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" type="text" placeholder="Search titles, keywords, content…" autocomplete="off">
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+</div>
+
+<main class="feed">
+  <div class="result-count" id="result-count"></div>
+  <div id="cards"></div>
+</main>
+
+<footer id="footer"></footer>
+
+<script>
+let DATA = { cards: [], topics: [] };
+let activeTopic = null;
+let query = "";
+
+async function load() {
+  try {
+    const res = await fetch('cards.json?_=' + Date.now());
+    DATA = await res.json();
+  } catch (e) {
+    document.getElementById('cards').innerHTML =
+      '<div class="empty"><div class="big">Could not load cards.json</div><div>Run the index builder, then refresh.</div></div>';
+    return;
+  }
+  document.getElementById('stat-cards').textContent = DATA.count;
+  document.getElementById('stat-topics').textContent = DATA.topics.length;
+  document.getElementById('stat-latest').textContent =
+    DATA.cards.length ? DATA.cards[0].date.slice(5) : '—';
+  document.getElementById('footer').textContent =
+    'Index generated ' + (DATA.generated || '') + ' · ' + DATA.count + ' notes';
+  renderChips();
+  render();
+}
+
+function renderChips() {
+  const chips = document.getElementById('chips');
+  const counts = {};
+  DATA.cards.forEach(c => c.topics.forEach(t => counts[t] = (counts[t]||0)+1));
+  chips.innerHTML = '';
+  const all = document.createElement('button');
+  all.className = 'chip' + (activeTopic === null ? ' active' : '');
+  all.innerHTML = 'All <span class="n">' + DATA.cards.length + '</span>';
+  all.onclick = () => { activeTopic = null; renderChips(); render(); };
+  chips.appendChild(all);
+  DATA.topics.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (activeTopic === t ? ' active' : '');
+    b.innerHTML = t + ' <span class="n">' + (counts[t]||0) + '</span>';
+    b.onclick = () => { activeTopic = (activeTopic === t ? null : t); renderChips(); render(); };
+    chips.appendChild(b);
+  });
+}
+
+function matches(card) {
+  if (activeTopic && !card.topics.includes(activeTopic)) return false;
+  if (!query) return true;
+  const q = query.toLowerCase();
+  const hay = [card.title, card.summary, card.body,
+    card.topics.join(' '), card.keywords.join(' ')].join(' ').toLowerCase();
+  return hay.includes(q);
+}
+
+function highlight(text) {
+  if (!query) return text;
+  const q = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp('(' + q + ')', 'gi'), '<mark>$1</mark>');
+}
+
+function render() {
+  const container = document.getElementById('cards');
+  const list = DATA.cards.filter(matches);
+  document.getElementById('result-count').textContent =
+    list.length + (list.length === 1 ? ' note' : ' notes') +
+    (activeTopic ? ' in ' + activeTopic : '') + (query ? ' matching “' + query + '”' : '');
+
+  if (!list.length) {
+    container.innerHTML = '<div class="empty"><div class="big">Nothing here yet</div><div>Try a different search or clear the filter.</div></div>';
+    return;
+  }
+  container.innerHTML = '';
+  list.forEach(card => container.appendChild(buildCard(card)));
+}
+
+function buildCard(card) {
+  const el = document.createElement('article');
+  el.className = 'card';
+
+  const topicsHtml = card.topics.map(t => '<span class="topic-tag">' + t + '</span>').join('');
+  const kwHtml = card.keywords.map(k => '<span class="kw">' + k + '</span>').join('');
+  const matHtml = (card.material && card.material.length)
+    ? '<div class="material-note">Source material: ' + card.material.join(', ') + '</div>' : '';
+
+  el.innerHTML =
+    '<div class="card-head">' +
+      '<div class="card-meta-top"><span class="card-date">' + card.date + '</span>' +
+        '<span class="card-topics">' + topicsHtml + '</span></div>' +
+      '<h2>' + highlight(card.title) + '</h2>' +
+      (card.summary ? '<p class="card-summary">' + highlight(card.summary) + '</p>' : '') +
+      '<div class="card-keywords">' + kwHtml + '</div>' +
+    '</div>' +
+    '<div class="expand-bar"><span>Read note</span>' +
+      '<svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div>' +
+    '<div class="card-body" data-rendered="0">' +
+      '<div class="md"></div>' + matHtml +
+    '</div>';
+
+  const head = el.querySelector('.card-head');
+  const bar = el.querySelector('.expand-bar');
+  const toggle = () => {
+    el.classList.toggle('open');
+    if (el.classList.contains('open')) renderBody(el, card);
+  };
+  head.onclick = toggle;
+  bar.onclick = toggle;
+  return el;
+}
+
+function renderBody(el, card) {
+  const body = el.querySelector('.card-body');
+  if (body.dataset.rendered === '1') return;
+  const mdDiv = body.querySelector('.md');
+
+  let src = card.body;
+
+  // 1. Protect mermaid fenced blocks from the markdown parser
+  const mermaidBlocks = [];
+  src = src.replace(/```mermaid\n([\s\S]*?)```/g, (m, code) => {
+    mermaidBlocks.push(code);
+    return '\n@@MERMAID' + (mermaidBlocks.length - 1) + '@@\n';
+  });
+
+  // 2. Protect math from the markdown parser. marked mangles underscores,
+  //    backslashes and asterisks inside math (\underbrace{}_{}, \boxed, etc.),
+  //    so we pull math out, render it with KaTeX directly, and reinsert the HTML.
+  const mathBlocks = [];
+  const renderMath = (tex, display) => {
+    try {
+      return window.katex.renderToString(tex, { displayMode: display, throwOnError: false });
+    } catch (e) {
+      return '<code>' + tex.replace(/</g, '&lt;') + '</code>';
+    }
+  };
+  // display math $$...$$ first
+  src = src.replace(/\$\$([\s\S]*?)\$\$/g, (m, tex) => {
+    mathBlocks.push(renderMath(tex.trim(), true));
+    return '@@MATH' + (mathBlocks.length - 1) + '@@';
+  });
+  // then inline math $...$ (single-line, non-greedy, skip empty)
+  src = src.replace(/\$([^\$\n]+?)\$/g, (m, tex) => {
+    mathBlocks.push(renderMath(tex.trim(), false));
+    return '@@MATH' + (mathBlocks.length - 1) + '@@';
+  });
+
+  // 3. Markdown → HTML (now safe; no math/diagram syntax left to mangle)
+  let html = marked.parse(src);
+
+  // 4. Reinsert protected blocks
+  html = html.replace(/@@MATH(\d+)@@/g, (m, i) => mathBlocks[i]);
+  html = html.replace(/<p>@@MERMAID(\d+)@@<\/p>/g,
+    (m, i) => '<div class="mermaid">' + mermaidBlocks[i] + '</div>');
+  html = html.replace(/@@MERMAID(\d+)@@/g,
+    (m, i) => '<div class="mermaid">' + mermaidBlocks[i] + '</div>');
+
+  mdDiv.innerHTML = html;
+
+  // 5. Render diagrams
+  if (window.mermaid) {
+    mdDiv.querySelectorAll('.mermaid').forEach((node, i) => {
+      const id = 'm-' + card.id + '-' + i;
+      window.mermaid.render(id, node.textContent).then(({ svg }) => { node.innerHTML = svg; })
+        .catch(() => {});
+    });
+  }
+  body.dataset.rendered = '1';
+}
+
+document.getElementById('search').addEventListener('input', e => {
+  query = e.target.value.trim();
+  render();
+});
+
+window.addEventListener('DOMContentLoaded', () => setTimeout(load, 200));
+</script>
+</body>
+</html>

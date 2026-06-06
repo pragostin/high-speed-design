@@ -1,0 +1,17 @@
+# dependencies / vendored libs (regenerate with scripts/fetch-libs.sh)
+site/assets/lib/
+
+# generated index (regenerate with scripts/build_index.py)
+# NOTE: cards.json IS committed so Vercel can serve it without a build step.
+# If you prefer to generate it in CI instead, uncomment the next line:
+# site/cards.json
+
+# OS / editor cruft
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# raw study material can be large / copyrighted — keep local, don't publish
+material/
+.vercel
