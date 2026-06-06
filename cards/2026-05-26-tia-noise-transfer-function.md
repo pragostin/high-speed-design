@@ -165,31 +165,33 @@ $$
 
 The inner integral (before the square root) carries the whole competition. The capacitance enters the **numerator** (via the $C_{in}^2 f^2$ term, where $C_{in}$ now includes $C_J$). The PD bandwidth enters the **denominator** (via $|H_{PD}|^2$). A higher-$C_J$ diode raises the numerator a little; a wider-bandwidth diode raises the denominator a lot across the band that dominates the integral. The $\sqrt{\cdot}$ converts the integrated power back to an rms current, and dividing by $\sqrt{f_N}$ expresses it as a band-averaged spectral density (A/√Hz) so PDs with different shapes compare on equal footing. Whichever effect moves more, wins.
 
-### Worked comparison: your PD_1 vs PD_2
+### Illustrative comparison: an optically-limited vs. a balanced photodiode
 
-| | **PD_1** | **PD_2** |
+> The values in the table below are representative of diode performance ranges reported in published literature on high-speed receivers. They are chosen to isolate the trade-off mechanism, not to characterize any specific device.
+
+| | **PD_A** *(optically limited)* | **PD_B** *(balanced design)* |
 |---|---|---|
-| $C_J$ | 25 fF (low) | 50 fF (higher) |
+| $C_J$ | ~25 fF (low) | ~50 fF (higher) |
 | Limiting mechanism | **optical** roll-off | balanced opt/elec |
-| Total PD BW | 31 GHz | 45 GHz |
-| Electrical BW | >60 GHz | ~similar to optical |
+| Total PD BW | ~30 GHz | ~45 GHz |
+| Electrical BW | well above optical | ~similar to optical |
 | Effect on numerator ($C_{in}^2$) | small | +25 fF → modest ↑ |
-| Effect on denominator ($|H_{PD}|^2$) | rolls off at 31 GHz → **strong noise inflation** in-band | survives to 45 GHz → little inflation |
+| Effect on denominator ($|H_{PD}|^2$) | rolls off early → **strong noise inflation** in-band | survives wider → little inflation |
 
-For 100 GBaud PAM4 the Nyquist content extends well past 30 GHz, so PD_1's optical roll-off lands **inside the signal band**. Three compounding penalties follow:
+For 100 GBaud PAM4 the Nyquist content extends well past 30 GHz, so PD_A's optical roll-off lands **inside the signal band**. Three compounding penalties follow:
 
-1. **Direct noise inflation.** Dividing by a small $|H_{PD}|^2$ above ~31 GHz blows up $\overline{i_{n,opt}^2}$ precisely where the $f^2$ tail is already largest.
+1. **Direct noise inflation.** Dividing by a small $|H_{PD}|^2$ above ~30 GHz blows up $\overline{i_{n,opt}^2}$ precisely where the $f^2$ tail is already largest.
 2. **Equalization noise.** To recover the signal lost to the early roll-off, the RX CTLE/FFE must boost the high-frequency band — and that boost multiplies the noise sitting there. An early *optical* pole cannot be "designed around" on the electrical side; it is baked into the delivered signal.
 3. **Steeper-than-capacitance roll-off.** A transit-time-limited optical response can fall faster than the single-pole $RC$ shape, punishing the top of the band harder than the extra 25 fF ever could.
 
-PD_2 pays only the modest numerator penalty of +25 fF (a second-order bump in the $C_{in}^2$ term — recall $C_J$ is one of *several* contributors to $C_{in}$, alongside pad, ESD and $C_{gs}$), while removing the large denominator penalty. The net 20–30% improvement in IRN_avg you measured is the denominator effect dominating the numerator effect. **Nothing here contradicts the physics of §3** — it shows that ranking photodiodes requires the *optical*-referred integral, where PD bandwidth and capacitance compete, not the bare $C_{in}^2$ shorthand.
+PD_B pays only the modest numerator penalty of ~+25 fF (a second-order bump in the $C_{in}^2$ term — recall $C_J$ is one of *several* contributors to $C_{in}$, alongside pad, ESD and $C_{gs}$), while removing the large denominator penalty. The net improvement in IRN_avg — on the order of 20–30% for these representative values, as computed from the integral above — is the denominator effect dominating the numerator effect. **Nothing here contradicts the physics of §3** — it shows that ranking photodiodes requires the *optical*-referred integral, where PD bandwidth and capacitance compete, not the bare $C_{in}^2$ shorthand.
 
 ### Practical reading of the result
 
-- A +25 fF increase in $C_J$ is real but second-order when $f_T$ and loop gain are high; ~14 GHz of extra *delivered* signal bandwidth is first-order.
-- The win shows up specifically in the **integrated, post-equalization** sensitivity — i.e. exactly in the IRN_avg metric integrated to $f_N$. A low-frequency-only noise number will hide the PD_2 advantage; the benefit lives in the upper band.
-- **Where the roll-off lives matters as much as its frequency.** An *optical/transit-limited* pole hits the signal directly and is unrecoverable; an *electrical* ($C_J$-limited) pole at least shares the network you can peak with a T-coil (§5). PD_1 spends its capacitance budget well but is capped by optics; PD_2's balanced design keeps the whole signal band alive.
-- Sanity check the model by plotting $\overline{i_{n,in}^2}(f)/|H_{PD}(f)|^2$ for both diodes on the same axes out to $f_N$; the crossover where PD_2 overtakes PD_1 should fall below Nyquist. `scripts/pd_noise_compare.py` does exactly this — it computes IRN_avg for both PDs and plots the crossover.
+- A ~+25 fF increase in $C_J$ is real but second-order when $f_T$ and loop gain are high; ~15 GHz of extra *delivered* signal bandwidth is first-order.
+- The win shows up specifically in the **integrated, post-equalization** sensitivity — i.e. exactly in the IRN_avg metric integrated to $f_N$. A low-frequency-only noise number will hide the PD_B advantage; the benefit lives in the upper band.
+- **Where the roll-off lives matters as much as its frequency.** An *optical/transit-limited* pole hits the signal directly and is unrecoverable; an *electrical* ($C_J$-limited) pole at least shares the network you can peak with a T-coil (§5). PD_A spends its capacitance budget well but is capped by optics; PD_B's balanced design keeps the whole signal band alive.
+- Sanity check the model by plotting $\overline{i_{n,in}^2}(f)/|H_{PD}(f)|^2$ for both diodes on the same axes out to $f_N$; the crossover where PD_B overtakes PD_A should fall below Nyquist. `scripts/pd_noise_compare.py` does exactly this — it computes IRN_avg for both representative diodes and plots the crossover.
 
 ## Key takeaways
 
